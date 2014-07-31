@@ -2,12 +2,13 @@ WordStorm
 =========
 Boggle like game
 
+__markups__ .... https://github.com/tchapi/markdown-cheatsheet/blob/master/README.md
 ### Requirement ###
 * linux
-  * python 2.7
-  * pygame
-  * numpy
-  * PyEnchant ... http://pythonhosted.org/pyenchant/
+* python 2.7
+* pygame
+* numpy
+* PyEnchant ... http://pythonhosted.org/pyenchant/
 
 This is my first time playing with network code
 
@@ -18,4 +19,3 @@ This is my first time playing with network code
  * timer
  * solver
  * chat
- * send to chat word already in list

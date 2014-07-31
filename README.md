@@ -9,6 +9,8 @@ Requirements
 .. numpy
 .. PyEnchant  http://pythonhosted.org/pyenchant/
 
+This is my first time playing with network code
+
 TODO:
 create nework_scene
 

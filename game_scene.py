@@ -26,7 +26,9 @@ class Game(screen.Scene):
         screen.Scene.__init__(self)
         
         game_data.set_board(screen.handler.rect.center)
-        self.wordlist = WordList(self, (762,63), (240, 480), (0,50,200))
+        self.wordlist = WordList(self, (762,63), (240, 480), (0,50,200), self.update_score)
+        self.timer = String(self, '3:00', (120,50), pygame.font.Font(None, 60))
+        self.player_data = String(self, 'words : 0      score : 0', (882, 560), pygame.font.Font(None, 30))
         
         self.bind_event(pygame.QUIT, self.on_quit)
         
@@ -37,8 +39,9 @@ class Game(screen.Scene):
         style = textbox.default_textbox_image((480, 34))
         self.game_textbox = textbox.Textbox(self, (272, 726), image=style)        
         
-        self.tick = 0
-        self.timer = String(self, '3:00', (120,50), pygame.font.Font(None, 60))
+        self.tick = 0        
+        self.timer.text = '3:00'
+        self.player_data.text = 'words : 0      score : 0'
      
     def solver(self):
         pass
@@ -66,4 +69,10 @@ class Game(screen.Scene):
                 m = data / 60
                 s = data - m * 60
                 self.timer.text = '%(a)d:%(b)02d' %{"a":m, "b":s}
-            
+                
+    def update_score(self):
+        word_count = len(self.wordlist.wordlist)
+        dscore = {4:1, 5:2, 6:3, 7:5, 8:11}
+        score = sum([dscore[min(max(4,len(word)),8)] for word in self.wordlist.wordlist])
+                
+        self.player_data.text = 'words : %-6d score : %d' %(word_count, score)

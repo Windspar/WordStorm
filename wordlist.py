@@ -7,10 +7,11 @@ import game_data
 class WordList(object):
     lib = enchant.Dict("en_US")
     
-    def __init__(self, parent, position, size, color, font=None):
+    def __init__(self, parent, position, size, color, callback, font=None):
         self.rect = pygame.Rect(position, size)
         self.surface = pygame.Surface(size)
         self.color = color
+        self.callback = callback
         
         if font:
             self.font = font
@@ -120,6 +121,7 @@ class WordList(object):
                     self.wordlist.append(game_data.Word.word)
                     self.renderlist.append(String(None, game_data.Word.word, (0, 0), self.font, (0,150,200), String.LEFT))
                     self.render()
+                    self.callback()
                 
             self.left_mouse_button = False
             self.last_key = None

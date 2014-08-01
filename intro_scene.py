@@ -7,11 +7,10 @@ from ui_tools.ui_string import String
 #pygame.init()
 
 class Intro(screen.Scene):
-    def __init__(self, handler):
+    def __init__(self):
         screen.Scene.__init__(self)
-        self.handler = handler
         self.background = gradient.vertical(((0,150,220), (0,50,150), (0,0,120)))
-        self.background = pygame.transform.scale(self.background, handler.get_size())
+        self.background = pygame.transform.scale(self.background, screen.handler.rect.size)
         
         font = pygame.font.Font(None, 180)
         self.string = String(self, 'Word Storm', (512, 150), font, (204, 180, 150))
@@ -33,8 +32,8 @@ class Intro(screen.Scene):
         surface.blit(self.background, (0,0))
         
     def single_push(self, event):
-        self.handler.set_scene = 'game'
+        screen.handler.set_scene = 'game'
         
     def on_quit(self, event):
-        self.handler.running = 0
+        screen.handler.running = 0
         

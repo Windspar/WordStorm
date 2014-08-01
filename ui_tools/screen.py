@@ -32,32 +32,35 @@ class Scene(object):
         
     def bind_update(self, callback):
         self.internal_updates.append(callback)
+        
+class handler(object):
+    scenes = {}
+    fps = None
+    running = True
+    set_scene = None
+    rect = None        
     
 class Handler(object):
     def __init__(self, caption, size, flags=0, depth=0):
-        self.scenes = {}
+        handler.scenes = {}
+        handler.rect = pygame.Rect((0,0), size)
         self.current_scene = Scene()
-        
         self.screen = pygame.display.set_mode(size, flags, depth)
         pygame.display.set_caption(caption)
         self.clock = pygame.time.Clock()
         
-    def get_size(self):
-        return self.screen.get_size()
-        
-    def get_rect(self):
-        return self.screen.get_rect()
-        
+    
     def loop(self, start_scene=None, fps=60):
-        self.set_scene = start_scene
-        self.running = True
-        self.fps = fps
-        while self.running:
-            if self.set_scene:
+        handler.set_scene = start_scene
+        handler.running = True
+        handler.fps = fps
+        while handler.running:
+            if handler.set_scene:
                 self.current_scene.leaving()
-                self.current_scene = self.scenes[self.set_scene]
+                self.current_scene = handler.scenes[handler.set_scene]
                 self.current_scene.entrance()
-                self.set_scene = None
+                self.mouseover = False
+                handler.set_scene = None
         
             for event in pygame.event.get():
                 self.current_scene.event(event)
@@ -70,4 +73,4 @@ class Handler(object):
             self.current_scene.auto_update(tick)
             
             pygame.display.flip()
-            self.clock.tick(self.fps)
+            self.clock.tick(handler.fps)

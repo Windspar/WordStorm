@@ -36,8 +36,7 @@ class Shake(object):
 def shake():
     track = {}
     roll = [random.choice(ROLL[0]), 0, 
-            random.choice(ROLL[2]), 
-            random.choice(ROLL[3])]
+            random.choice(ROLL[2]), 0]
     
     roll[1] = 15 - sum(roll)         
     n = random.choice([1, 1, 0, 0, 2, 3])

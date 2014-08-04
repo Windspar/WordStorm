@@ -13,10 +13,12 @@ __markups__ .... https://github.com/tchapi/markdown-cheatsheet/blob/master/READM
 This is my first time playing with network code
 
 #### TODO ####
+* rewrite network interface
 * create nework_scene -- currently working on
 * __game_scene__
  * get networking to work
- * display word count and score
  * solver
  * chat
-* create gameover_scene
+* __gameover_scene__
+ * make it multiplayer
+ * have it show word count and score

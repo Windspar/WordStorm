@@ -48,7 +48,7 @@ class WordList(object):
         step = 0
         for word in word_data:
             image = self.font.render(word, 1, (0,150,200))
-            position = 10, step * self.spacer + 5
+            position = 10, step * self.spacer + 3
             self.surface.blit(image, position)
             step += 1
             

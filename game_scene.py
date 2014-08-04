@@ -143,7 +143,7 @@ class Game(screen.Scene):
         else:
             data = 180000 - (tick - self.tick)
             if  data < 0:
-                # need gameover_scene
+                screen.handler.set_scene = 'gameover'
                 pass
             else:
                 data = data / 1000

@@ -27,11 +27,11 @@ class HostServer(threading.Thread):
     def run(self):
         self.running = True
         while self.running:
-            sread, swrite, serror = select.select(self.socket_list, self.socket_list[], [], 0)
+            sread, swrite, serror = select.select(self.socket_list, self.socket_list, [], 0)
 
             for read_socket in sread:
                 if read_socket == self.sock:
-                    sockfd, addr = socket.accept()
+                    sockfd, addr = read_socket.accept()
                     self.socket_list.append(sockfd)
                     self.accepting(sockfd) # internal
                 else:

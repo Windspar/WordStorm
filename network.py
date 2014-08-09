@@ -35,20 +35,21 @@ class Host(tcp_network.HostServer):
         if data.startswith('@@'):
             d = data.split()
             if data.startswith('@@Name'):
+                self.clients[socket] = ClientObject()
                 self.clients[socket].name = d[1]
                 names = [self.clients[p].name for p in self.socket_list if p != self.sock]
                 names = [self.name] + names
-                self.send('#Names ' + ' '.join(names)
+                self.send('#Names ' + ' '.join(names), True)
             elif data.startswith('@@Score'):
                 self.clients[socket].score = int(d[1])
                 score = [self.clients[p].score for p in self.socket_list if p != self.sock]
                 score = [self.score] + score
-                self.send('#Scores ' +' '.join(map(str, score)))
+                self.send('#Scores ' +' '.join(map(str, score)), True)
             elif data.startswith('@@WordCount'):
                 self.clients[socket].word_count = int(d[1])
                 count = [self.clients[p].word_count for p in self.socket_list if p != self.sock]
                 count = [self.word_count] + count
-                self.send('#WordCount ' + ' '.join(map(str, count)))
+                self.send('#WordCount ' + ' '.join(map(str, count)), True)
         else:
             for player_socket in self.socket_list:
                 if player_socket != self.sock and player_socket != socket:
@@ -57,6 +58,20 @@ class Host(tcp_network.HostServer):
             self.recieved.put(data)
             self.recieved.task_done()
             
+    def host_recieving(self, data):
+        if data.startswith('@@'):
+            d = data.split()
+            if data.startswith('@@Score'):
+                self.score = int(d[1])
+                score = [self.clients[p].score for p in self.socket_list if p != self.sock]
+                score = [self.score] + score
+                self.send('#Scores ' +' '.join(map(str, score)), True)
+            elif data.startswith('@@WordCount'):
+                self.word_count = int(d[1])
+                count = [self.clients[p].word_count for p in self.socket_list if p != self.sock]
+                count = [self.word_count] + count
+                self.send('#WordCount ' + ' '.join(map(str, count)), True)
+                
     def sending(self, socket):
         if socket != self.sock:
             if socket in self.socket_list:                
@@ -72,10 +87,14 @@ class Host(tcp_network.HostServer):
             self.socket_list.remove(socket)
             del self.clients[socket]
 
-    def send(self, data):        
+    def send(self, data, to_self=False):        
         for player_socket in self.socket_list:
             if player_socket != self.sock:
-                self.client[player_socket].send(data)    
+                self.clients[player_socket].send(data)
+        
+        if to_self:
+            self.recieved.put(data)
+            self.recieved.task_done()
         
     def get(self):
         if self.recieved.empty():
@@ -104,7 +123,7 @@ class Client(tcp_network.Client):
     def recieving(self, data):
         if data.startswith('@@'):
             #d = data.split()
-            if data.startswith('@@Accept'):
+            if data == '@@Accept':
                 self.send('@@Name ' + self.name)
         else:
             self.recieved.put(data)
@@ -119,3 +138,6 @@ class Client(tcp_network.Client):
             return None
             
         return self.recieved.get()
+        
+    def stop(self):
+        self.running = False

@@ -5,8 +5,24 @@ from constant import ALLOWED_MOVEMENT
 from ui_tools.ui_string import String
 from wordlist import WordList
 import game_data
-
+from network_scene import Connection
 pygame.init()
+
+class Player(object):
+    score = 0
+    word_count = 0
+    
+class Display(object):
+    def __init__(self, name, score, word_count, offset):
+        self.name = String(None, name, (120, offset * 100 + 100))
+        self.data = String(None, 'words : %-7d count : %d' % (word_count, score), (120, offset * 100 + 130))
+        
+    def single_update(self):
+        self.data = String(None, 'words : %-7d count : %d' % (Player.word_count, Player.score), (120, 130))
+        
+    def blit(self, surface):
+        self.name.blit(surface)
+        self.data.blit(surface)
             
 class Chat(object):
     def __init__(self, parent, screen_width):
@@ -17,7 +33,6 @@ class Chat(object):
 class LetterSelect(object):
     def __init__(self, parent):
         self.wordlist = WordList(parent, (762,63), (240, 480), (0,50,200))
-        self.player_data = String(parent, 'words : 0      score : 0', (882, 560), pygame.font.Font(None, 30))
         self.clear()
         
         if parent:
@@ -30,19 +45,33 @@ class LetterSelect(object):
             pygame.draw.rect(surface, (200,50,25), game_data.Board.squares[key][0])          
 
         self.wordlist.blit(surface)
+        if Connection.stream is None:
+            if self.display:
+                self.display.blit(surface)
             
     def clear(self):
+        self.display = Display('', 0, 0, 0)
         self.rectlist = []
         self.wordlist.clear()
         self.last_key = None
         self.leftmouse = False
-        self.player_data.text = 'words : 0      score : 0'
         
     def update_score(self):
         word_count = len(self.wordlist.wordlist)
         dscore = {4:1, 5:2, 6:3, 7:5, 8:11}
-        score = sum([dscore[min(max(4,len(word)),8)] for word in self.wordlist.wordlist])                
-        self.player_data.text = 'words : %-6d score : %d' %(word_count, score)
+        score = sum([dscore[min(max(4,len(word)),8)] for word in self.wordlist.wordlist])
+        if Connection.stream:
+            if Connection.stream.running:
+                if Connection.host:
+                    Connection.stream.host_recieving('@@Score %d' % (score))
+                    Connection.stream.host_recieving('@@WordCount %d' % (word_count))
+                else:
+                    Connection.stream.send('@@Score %d' % (score))
+                    Connection.stream.send('@@WordCount %d' % (word_count))
+        
+        Player.score = score
+        Player.word_count = word_count
+        self.display.single_update()
         
     def on_mouseup(self, event):
         if event.button == 1:            
@@ -112,7 +141,7 @@ class Game(screen.Scene):
         self.letter_select = LetterSelect(self)
         self.timer = String(self, '3:00', (120,50), pygame.font.Font(None, 60))
         
-        self.bind_event(pygame.QUIT, self.on_quit)
+        self.bind_event(pygame.QUIT, self.on_quit)        
         
     def entrance(self):
         game_data.shake()
@@ -121,8 +150,13 @@ class Game(screen.Scene):
         style = textbox.default_textbox_image((480, 34))
         self.game_textbox = textbox.Textbox(self, (272, 726), image=style)        
         
+        self.display = []
+        Player.score = 0
+        Player.word_count = 0
         self.tick = 0        
         self.timer.text = '3:00'
+        if Connection.stream:
+            self.update_display()
      
     def solver(self):
         pass
@@ -133,8 +167,14 @@ class Game(screen.Scene):
         self.letter_select.blit(surface)
         surface.blit(game_data.Shake.image, game_data.Board.position)
         game_data.Word.image.blit(surface)
+        for item in self.display:
+            item.blit(surface)
         
     def on_quit(self, event):
+        if Connection.stream:
+            if Connection.stream.running:
+                Connection.stream.stop()
+                Connection.stream.join()
         screen.handler.running = 0
         
     def update(self, tick):
@@ -150,3 +190,36 @@ class Game(screen.Scene):
                 m = data / 60
                 s = data - m * 60
                 self.timer.text = '%(a)d:%(b)02d' %{"a":m, "b":s}
+                
+        if Connection.stream:
+            if Connection.stream.running:
+                data = Connection.stream.get()
+                if data:
+                    if data.startswith('#'):
+                        d = data.split()
+                        if data.startswith('#Scores'):
+                            Connection.scores = list(map(int, d[1:]))
+                        elif data.startswith('#WordCount'):
+                            Connection.word_count = list(map(int, d[1:]))
+                        self.update_display()
+                    else:
+                        # send to chat
+                        pass
+
+    def update_display(self):
+        length = len(Connection.names)
+        self.display = []
+        for x in xrange(length):
+            try:
+                score = Connection.scores[x]
+            except:
+                score = 0
+                
+            try:
+                word_count = Connection.word_count[x]
+            except:
+                word_count = 0
+            
+            self.display.append(Display(Connection.names[x],score,word_count,x))
+        
+        

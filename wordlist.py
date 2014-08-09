@@ -17,7 +17,7 @@ class WordList(object):
             self.font = pygame.font.Font(None, 30)
 
         height = self.font.size('Ay')[1]
-        self.spacer = int(height / 2.5) + (height - 8)
+        self.spacer = int(height / 2.5) + (height - 2)
         self.max_length = int(size[1] / self.spacer)
         
         self.clear()
@@ -48,7 +48,7 @@ class WordList(object):
         step = 0
         for word in word_data:
             image = self.font.render(word, 1, (0,150,200))
-            position = 10, step * self.spacer + 3
+            position = 10, step * self.spacer + 4
             self.surface.blit(image, position)
             step += 1
             

@@ -9,6 +9,13 @@ import urllib2
 
 def get_public_ip():
     return urllib2.urlopen('http://ip.42.pl/raw').read()
+    
+def get_local_ip():
+	data = commands.getoutput('hostname -I')
+	if data.startswith('hostname'):
+		# Arch Linux 
+		data = commands.getoutput('hostname -i')
+	return data
 
 class Connection(object):
     stream = None
@@ -32,7 +39,7 @@ class Connect(screen.Scene):
         image = gradient.vertical(((0,0,200),(0,0,150),(0,0,75)))
         self.background = pygame.transform.scale(image, screen.handler.rect.size)
         self.start_button = None
-        local_ip = commands.getoutput('hostname -I')
+        local_ip = get_local_ip()
         rect = screen.handler.rect
         leftx = rect.centerx / 2
         rightx = rect.centerx + leftx

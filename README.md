@@ -10,16 +10,18 @@ __markdowns__ .... https://github.com/tchapi/markdown-cheatsheet/blob/master/REA
 * numpy
 * PyEnchant ... http://pythonhosted.org/pyenchant/
 
-This is my first time playing with network code
+This is my first time playing with network code.
 
 #### TODO ####
 * __networking__ __framework__
  * tell when some disconnect
- * send wordlist over
  * have network_scene go back when failed to connect
 * __game_scene__
  * solver
  * chat
 * __gameover_scene__
- * make it multiplayer (network)
- * have it show word count and score
+ * have oppenent list display.
+ * 
+
+This game is still in alpha mode.
+* added 5x5 board

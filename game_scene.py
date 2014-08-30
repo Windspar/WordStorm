@@ -8,9 +8,15 @@ pygame.init()
 class Game(screen.Scene):
     def __init__(self):
         screen.Scene.__init__(self)
-
-        self.timer = String(self, '3:00', (120,50), pygame.font.Font(None, 60))
-        engine.setup(self)
+        
+        width = screen.handler.rect.w / 8
+        fsize = width / 2
+        self.timer = String(self, '3:00', (width,50), pygame.font.Font(None, fsize))
+        
+        width = screen.handler.rect.w / 2
+        height = screen.handler.rect.h - 42
+        style = textbox.default_textbox_image((width, 34))
+        self.game_textbox = textbox.Textbox(self, (width / 2, height), image=style)
 
         self.bind_event(pygame.QUIT, self.on_quit)
 
@@ -24,8 +30,7 @@ class Game(screen.Scene):
 
         engine.player.clear()
         engine.player.display = Display(engine.player_name, 0, 0, 0)
-        engine.letter_select.clear()
-        engine.wordlist_display.wordlist = engine.player.wordlist
+        engine.letter_select.clear()        
         engine.wordlist_display.render()
         
         x = 1
@@ -33,9 +38,6 @@ class Game(screen.Scene):
             engine.players[name].clear()
             engine.players[name].display = Display(name, 0, 0, x)
             x += 1
-
-        style = textbox.default_textbox_image((480, 34))
-        self.game_textbox = textbox.Textbox(self, (272, 726), image=style)
 
         self.tick = 0
         self.timer.text = '3:00'
@@ -61,6 +63,23 @@ class Game(screen.Scene):
                 engine.connection.stream.stop()
                 engine.connection.stream.join()
         screen.handler.running = 0
+        
+    def incoming_data(self, data):
+        if data:
+            if data.startswith('#'):
+                d = data.split()
+                if data.startswith('#Data'):
+                    name = d[1]
+                    if name != engine.player_name:
+                        engine.players[name].update(d[2])                                
+                        engine.players[name].display.update()
+                elif data.startswith('#Shake'):
+                    if not engine.connection.host:
+                        engine.board.shake_data = d[1:]
+                        engine.board.shake_render()
+            else:
+                # send to chat
+                pass
 
     def update(self, tick):
         if self.tick == 0:
@@ -78,19 +97,5 @@ class Game(screen.Scene):
 
         if engine.connection.stream:
             if engine.connection.stream.running:
-                data = engine.connection.stream.get()
-                if data:
-                    if data.startswith('#'):
-                        d = data.split()
-                        if data.startswith('#Data'):
-                            name = d[1]
-                            if name != engine.player_name:
-                                engine.players[name].update(d[2])                                
-                                engine.players[name].display.update()
-                        elif data.startswith('#Shake'):
-                            if not engine.connection.host:
-                                engine.board.shake_data = d[1:]
-                                engine.board.shake_render()
-                    else:
-                        # send to chat
-                        pass
+                engine.connection.stream.get(self.incoming_data)
+                

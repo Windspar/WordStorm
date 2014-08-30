@@ -17,27 +17,29 @@ class Host(tcp_network.HostServer):
         if data.startswith('@@'):
             d = data.split()
             if data.startswith('@@Name'):
-                engine.socket_names[socket] = d[1]
-                engine.players[d[1]] = self.waiting_playername[socket]
+                name = d[1]
+                engine.socket_names[socket] = name
+                engine.players[name] = self.waiting_playername[socket]
                 del self.waiting_playername[socket]
-                names = [engine.socket_names[p] for p in self.socket_list if p != self.sock]
+                names = [engine.socket_names[p] for p in self.socket_list if p != self.sock and p != socket]
                 names = [engine.player_name] + names
-                self.send('#Names ' + ' '.join(names), True)
+                engine.players[name].send('#Names ' + ' '.join(names))
+                self.broadcast(socket, '#User ' + name)
             # sends( name, word )
             elif data.startswith('@@Data'):
                 name = engine.socket_names[socket]
-                self.send('#Data %s %s' % (name,d[1]), True)
-
+                self.broadcast(socket, '#Data %s %s' % (name,d[1]))
         else:
-            for player_socket in self.socket_list:
-                if player_socket != self.sock and player_socket != socket:
-                    name = engine.socket_names[player_socket]
-                    engine.players[name].send(data)
+            self.broadcast(socket, data)
+            
+    def broadcast(self, socket, data):
+        for player_socket in self.socket_list:
+            if player_socket != self.sock and player_socket != socket:
+                name = engine.socket_names[socket]
+                engine.players[name].send(data)
+        self.recieved.put(data)
 
-            self.recieved.put(data)
-            self.recieved.task_done()
-
-    def host_recieving(self, data):
+    def host_send_data(self, data):
         if data.startswith('@@'):
             d = data.split()
             if data.startswith('@@Data'):
@@ -45,21 +47,19 @@ class Host(tcp_network.HostServer):
                 self.send('#Data %s %s' % (name,d[1]))
 
     def sending(self, socket):
+        def sending_data(data):
+            try:
+                socket.send(data)
+            except:
+                self.socket_disconnected(socket)
+                
         if socket != self.sock:
             if socket in self.socket_list:
                 if socket in self.waiting_playername.keys():
-                    data = self.waiting_playername[socket].get()
+                    self.waiting_playername[socket].get(sending_data)
                 elif socket in engine.socket_names.keys():
                     name = engine.socket_names[socket]
-                    data = engine.players[name].get()
-                else:
-                    data = None
-
-                if data:
-                    try:
-                        socket.send(data)
-                    except:
-                        self.socket_disconnected(socket)
+                    engine.players[name].get(sending_data)
 
     def socket_disconnected(self, socket):
         if socket in self.socket_list:
@@ -67,21 +67,16 @@ class Host(tcp_network.HostServer):
             if socket in engine.socket_names.keys():
                 del engine.socket_names[socket]
 
-    def send(self, data, to_self=False):
+    def send(self, data):
         for player_socket in self.socket_list:
             if player_socket in engine.socket_names.keys():
                 name = engine.socket_names[player_socket]
                 engine.players[name].send(data)
 
-        if to_self:
-            self.recieved.put(data)
+    def get(self, callback):
+        if not self.recieved.empty():
+            callback(self.recieved.get())
             self.recieved.task_done()
-
-    def get(self):
-        if self.recieved.empty():
-            return None
-
-        return self.recieved.get()
 
     def stop(self):
         self.running = False
@@ -97,8 +92,8 @@ class Client(tcp_network.Client):
 
     def sending(self, socket):
         if not self.outgoing.empty():
-            data = self.outgoing.get()
-            socket.send(data)
+            socket.send(self.outgoing.get())
+            self.outgoing.task_done()
 
     def recieving(self, data):
         if data.startswith('@@'):
@@ -108,17 +103,14 @@ class Client(tcp_network.Client):
                 self.send('@@Name ' + engine.player_name)
         else:
             self.recieved.put(data)
-            self.recieved.task_done()
 
     def send(self, data):
         self.outgoing.put(data)
-        self.outgoing.task_done()
 
-    def get(self):
-        if self.recieved.empty():
-            return None
-
-        return self.recieved.get()
+    def get(self, callback):
+        if not self.recieved.empty():
+            callback(self.recieved.get())
+            self.recieved.task_done()
 
     def stop(self):
         self.running = False

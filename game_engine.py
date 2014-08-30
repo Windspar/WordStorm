@@ -16,8 +16,9 @@ class Struct(object): pass
 class Display(object):
     def __init__(self, name, score, word_count, offset):
         self.player_name = name
-        self.name = String(None, name, (120, offset * 100 + 100))
-        self.data = String(None, 'words : %-7d count : %d' % (word_count, score), (120, offset * 100 + 130))
+        width = screen.handler.rect.w / 8
+        self.name = String(None, name, (width, offset * 100 + 100))
+        self.data = String(None, 'words : %-7d count : %d' % (word_count, score), (width, offset * 100 + 130))
     
     def update_player(self):
         score = engine.player.score
@@ -37,22 +38,22 @@ class Player(object):
     def __init__(self):
         self.base_score = {4:1, 5:2, 6:3, 7:5, 8:11}
         self.data = Queue.Queue()
+        self.wordlist = []
         self.clear()
 
     def clear(self):
         self.display = None
-        self.wordlist = []
+        self.wordlist[:] = []
         self.word_count = 0
         self.score = 0
 
     def send(self, data):
-        self.data.put(data)
-        self.data.task_done()
+        self.data.put(data)        
 
-    def get(self):
-        if self.data.empty():
-            return None
-        return self.data.get()
+    def get(self, callback):
+        if not self.data.empty():
+            callback(self.data.get())
+            self.data.task_done()
         
     def update(self, word):
         self.wordlist.append(word)
@@ -74,7 +75,7 @@ class Board(object):
         self.shake_image.set_colorkey((0,0,0))
 
         center = screen.handler.rect.center
-        self.position = center[0] - width // 2, center[1] - width // 2 - 80
+        self.position = center[0] - width // 2, 60
 
         for x in xrange(0, self.width, self.size):
             for y in xrange(0, self.width, self.size):
@@ -204,7 +205,7 @@ class LetterSelect(object):
         if engine.connection.stream:
             if engine.connection.stream.running:
                 if engine.connection.host:
-                    engine.connection.stream.host_recieving('@@Data %s' % (engine.word))
+                    engine.connection.stream.host_send_data('@@Data %s' % (engine.word))
                 else:
                     engine.connection.stream.send('@@Data %s' % (engine.word))        
 
@@ -266,7 +267,7 @@ class LetterSelect(object):
                         engine.word_image.text = engine.word
 
 class engine(object):
-    word_image = String(None, "", (512, 30), pygame.font.Font(None, 50), (50,200,0))
+    word_image = None
     wordlist_display = None
     word = ""
     socket_names = {}
@@ -280,13 +281,21 @@ class engine(object):
     connection.host = False
 
     @classmethod
-    def setup(cls, parent):
-        cls.wordlist_display = WordlistDisplay(parent, (772,63), (240, 480), (0,50,200))
-        cls.letter_select = LetterSelect(parent)
-
-    @classmethod
     def setup_board(cls, cells):
+        width = screen.handler.rect.w / 2
+        fsize = width / 10
+        cls.word_image = String(None, "", (width, 30), pygame.font.Font(None, fsize), (50,200,0))
+        width = int(width / cells) * cells
+        fsize = width / 10
         if cells == 5:
-            cls.board = Board(cells, 500, 55)
+            cls.board = Board(cells, width, fsize)
         else:
-            cls.board = Board(4, 480, 60)
+            cls.board = Board(4, width, fsize + 4)
+            
+        parent = screen.handler.scenes['game']
+        position = width + width / 2 + 10
+        xlength = screen.handler.rect.width - position - 10
+        cls.wordlist_display = WordlistDisplay(parent, (position,60), (xlength, width), (0,50,200))
+        cls.wordlist_display.wordlist = cls.player.wordlist
+        cls.letter_select = LetterSelect(parent)
+                
